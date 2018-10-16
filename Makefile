@@ -1,11 +1,11 @@
-CXXFLAGS = -g -c -Ofast -ffast-math -mtune=i486 -march=i486
+CXXFLAGS = -g -c
 
-CXX = i586-pc-msdosdjgpp-g++
+CXX = ia16-elf-g++
 
 OBJS = demo.o
 
 
-TARGET = demo.exe
+TARGET = demo.com
 
 $(TARGET):	$(OBJS)
 	$(CXX) -o $(TARGET) $(OBJS) $(LDFLAGS)
