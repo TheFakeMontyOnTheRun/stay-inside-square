@@ -1,28 +1,28 @@
-#include <conio.h>
-#include <dpmi.h>
-#include <go32.h>
-#include <pc.h>
-#include <bios.h>
-#include <algorithm>
-#include <array>
-#include <random>
-#include <iostream>
+#include <stdint.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
 
-std::pair<int, int> currentSquare = {1,1};
+struct pair {
+  int first;
+  int second;
+};
+
+pair currentSquare = {1,1};
 int ticksUntilClosure = 100;
+uint8_t imageBuffer[160 * 100];
+uint8_t buffer[160 * 100];
 
 unsigned char getPaletteEntry( int origin );
 int level = 0;
-int px = 160;
-int py = 100;
+int px = 80;
+int py = 50;
 int vx = 0;
 int vy = 0;
 int score = 0;
 int counter = 0;
-std::array< unsigned int, 320 * 200> imageBuffer;
-std::array< unsigned char, 320 * 200 >  buffer;
 
 static const unsigned char p = getPaletteEntry( 0xFF );
 
@@ -39,33 +39,78 @@ bool isInside() {
 
 void makeNextSquare() {
   
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<> random(50, 150);
-
   ++level;
   int tries = 10;
-  ticksUntilClosure = 100;
+  ticksUntilClosure = 40;
 
   do {
-    currentSquare = { random(gen), random(gen) };
-  } while( isInside() && --tries > 0 );
+    currentSquare = { (rand() + 20) % 40, (rand() + 20) % 40 };
+  }  while( isInside() && --tries > 0 );
 
+}
+
+void printString(const char* pStr) {
+  while(*pStr) {
+    __asm__ __volatile__ (
+			  "movb 0x0e, %%ah\n"
+			  "movb %[c], %%al\n"
+			  "int $0x10\n"
+			  : 
+			  : [c] "r" (*pStr)
+			  : "ax"
+			  );
+    ++pStr;
+  }
+}
+
+int16_t getKey() {
+  
+  int8_t toReturn = -1;
+
+  asm volatile ("movb $0x01, %%ah\n\t"
+		"movb $0x00, %%al\n\t"
+		"int $0x16       \n\t"
+		"movb %%al, %0 "
+		: "=rm"(toReturn)
+		);
+  
+  asm volatile("movb $0x0C, %ah\n\t"
+	       "movb $0x00, %al\n\t"
+	       "int $0x21"
+	       );
+
+  return toReturn;
 }
 
 void gameOver() {
-  textmode(C80);
-  clrscr();
-  std::cout << "Game Over!" << std::endl << "Your score: " << score << std::endl;
+  asm("movb $0x0, %ah\n\t"
+      "movb $0x3, %al\n\t"
+      "int $0x10\n\t");
+  
+  puts("Thanks for playing!");
   exit(0);
 }
 
-void initMode13h() {
-  union REGS regs;
+void put( uint16_t x, uint16_t y, uint8_t value ) {
+  int8_t pixel = value;
+  int16_t px = x;
+  int16_t py = y;
+  
+  asm volatile ("movb $0x0C, %%ah\n\t"
+		"movb %0,    %%al\n\t"
+		"movb $0x0,  %%bh\n\t"
+		"movw %1,    %%cx\n\t"
+		"movw %2,    %%dx\n\t"
+		"int $0x10"
+		:
+		:"rm" (pixel), "rm" (px), "rm" (py)		      
+		);  
+}
 
-  regs.h.ah = 0x00;
-  regs.h.al = 0x4;
-  int86(0x10,&regs,&regs);
+void initMode13h() {
+  asm("movb $0x0, %ah\n\t"
+      "movb $0x4, %al\n\t"
+      "int $0x10\n\t");  
 }
 
 unsigned char getPaletteEntry( int origin ) {
@@ -78,40 +123,6 @@ unsigned char getPaletteEntry( int origin ) {
   } else {
     return 0;
   }
-  
-  int r = (((((origin & 0x0000FF)      ) << 2  ) >> 8 ) );
-  int g = (((((origin & 0x00FF00) >> 8 ) << 2  ) >> 8 ) );
-  int b = (((((origin & 0xFF0000) >> 16) << 2  ) >> 8 ) );
-  
-  if ( r > g && r > b ) {
-    return 2;
-  }
-  
-  if ( g > b && g > r ) {
-    return 1;
-  }
-
-  if ( b > r && b > g ) {
-    return 1;
-  }
-  
-  if ( b == g && b == r && r > 192 ) {
-    return 3;
-  }
-
-  return 0;
-  
-  if ( r > g && r > b ) {
-    shade = 2;
-  } else if ( r < g && r < b && ( r > 128 || g > 128 ) ) {
-    shade = 1;
-  }
-
-  if ( ( r == g && r ==  b ) && r > 128 ) {
-    shade = 3;
-  }
-  
-  return shade;
 }
 
 void copyImageBufferToVideoMemory() {
@@ -121,19 +132,19 @@ void copyImageBufferToVideoMemory() {
   int value = -2;
   int offset = 0;
   
-  for ( int y = 0; y < 200; ++y ) {
+  for ( int y = 0; y < 100; ++y ) {
     
-    if ( y < 0 || y >= 200 ) {
+    if ( y < 0 || y >= 100 ) {
       continue;
     }
     
-    for ( int x = 0; x < 320; ++x ) {
+    for ( int x = 0; x < 160; ++x ) {
       
-      if ( x < 0 || x >= 320 ) {
+      if ( x < 0 || x >= 160 ) {
 	continue;
       }
       
-      offset = (y * 320) + x;
+      offset = (y * 160) + x;
       origin = imageBuffer[ offset ];
       
       if ( lastOrigin != origin ) {
@@ -143,13 +154,10 @@ void copyImageBufferToVideoMemory() {
       
       
       if ( buffer[ offset ] != value ) {
-	union REGS regs;
-	regs.h.ah = 0x0C;
-	regs.h.al = value;
-	regs.h.bh = 0;
-	regs.x.cx = x;
-	regs.x.dx = y;
-	int86(0x10,&regs,&regs);
+	put( (2 * x), (2 * y), value);
+	put( (2 * x) + 1, (2 * y), value);
+	put( (2 * x) + 1, (2 * y) + 1, value);	
+	put( (2 * x), (2 * y) + 1, value);
       }
       
       buffer[ offset ] = value;
@@ -158,8 +166,9 @@ void copyImageBufferToVideoMemory() {
 }
 
 void render() {  
-  std::fill( std::begin( imageBuffer), std::end( imageBuffer ), 0 );
+  memset( imageBuffer, 0, 160 * 100 );
 
+  
   int y0 = -ticksUntilClosure + currentSquare.second;
   int y1 = currentSquare.second + ticksUntilClosure;
   int x0 = -ticksUntilClosure + currentSquare.first;
@@ -168,17 +177,17 @@ void render() {
   bool isInsideTarget = isInside();
   
   for ( int y = y0; y < y1; ++y ) {
-    if ( y < 0 || y >= 200 ) {
+    if ( y < 0 || y >= 100 ) {
       continue;
     }
     
     for ( int x = x0; x < x1; ++x ) {      
-      if ( x < 0 || x >= 320 ) {
+      if ( x < 0 || x >= 160 ) {
 	continue;
       }
       
       if ( x == x0 || x == ( x1 - 1 ) || y == y0 || y == (y1 - 1) ) {
-	imageBuffer[ ( 320 * y ) + x ] = isInsideTarget ? 1 : 2;
+	imageBuffer[ ( 160 * y ) + x ] = isInsideTarget ? 1 : 2;
       }
     }
   }
@@ -190,36 +199,43 @@ void render() {
   x1 = 6 + px;
   
   for ( int y = y0; y < y1; ++y ) {
-    if ( y < 0 || y >= 200 ) {
+    if ( y < 0 || y >= 100 ) {
       continue;
     }
     
     for ( int x = x0; x < x1; ++x ) {      
-      if ( x < 0 || x >= 320 ) {
+      if ( x < 0 || x >= 160 ) {
 	continue;
       }
       
       if ( x == x0 || x == ( x1 - 1 ) || y == y0 || y == (y1 - 1) ) {
-	imageBuffer[ ( 320 * y ) + x ] = isInsideTarget ? 1 : 3;
+	imageBuffer[ ( 160 * y ) + x ] = isInsideTarget ? 1 : 3;
       }
     }
   }
 
-  imageBuffer[ ( 320 * py ) + px ] = isInsideTarget ? 1 : 3;
+  imageBuffer[ ( 160 * py ) + px ] = isInsideTarget ? 1 : 3;
   
   copyImageBufferToVideoMemory();
+
+
+  asm volatile("movb $0x02, %ah\n\t"
+	       "movb $0x00, %bh\n\t"
+	       "movb $0x01, %dl\n\t"
+	       "movb $0x10, %dh\n\t"	       
+	       "int $0x10");
+
+  printString("topo");
+  //  std::cout << "Score " << score << " Steps remaining: " << ticksUntilClosure - 10 << std::endl;
   
-  gotoxy(1,1);
-  std::cout << "Score " << score << " Steps remaining: " << ticksUntilClosure - 10 << std::endl;
-  
-  usleep(  20000 );
+  //  usleep(  20000 );
   
   ticksUntilClosure -= level;
   
   if ( ticksUntilClosure <= 10 ) {
     if ( isInside() ) {
       makeNextSquare();
-      level = std::min( 5, level + 1);
+      level = ( 5 > ( level + 1 ) ) ? (level + 1 ) : 5;
       ++score;
     } else {
       gameOver();
@@ -228,6 +244,8 @@ void render() {
 }
 
 int main( int argc, char **argv ) {
+
+  srand(time(NULL));
   makeNextSquare();
   bool done = false;
 
@@ -262,26 +280,30 @@ int main( int argc, char **argv ) {
     ++counter;
     render();
     
-    while( kbhit() ) {
-      lastKey = getch();
-      switch (lastKey){
-      case 'q':
-	done = true;
+
+    lastKey = getKey();
+
+    switch (lastKey){
+    case 'q':
+      done = true;
+      break;
+    case 'w':
+      vy = -5 + level;
+      break;
+    case 's':
+      vy = 5 + level;
+      break;
+    case 'a':
+      vx = -5 + level;
 	break;
-      case 'w':
-	vy = -5 + level;
-	break;
-      case 's':
-	vy = 5 + level;
-	break;
-      case 'a':
-	vx = -5 + level;
-	break;
-      case 'd':
-	vx = 5 + level;
-	break;
-      }
+    case 'd':
+      vx = 5 + level;
+      break;
     }
+      
+    
+
+    
   }
  
   return 0;
