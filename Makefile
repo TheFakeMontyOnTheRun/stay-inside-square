@@ -2,8 +2,8 @@ CXXFLAGS = -g -c
 
 CXX = ia16-elf-g++
 
-OBJS = demo.o
 
+OBJS = demo.o rendering.o
 
 TARGET = demo.com
 

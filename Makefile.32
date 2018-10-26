@@ -2,8 +2,8 @@ CXXFLAGS = -g -c
 
 CXX = i586-pc-msdosdjgpp-g++
 
-OBJS = demo.o
 
+OBJS = demo.o rendering.o
 
 TARGET = demo.exe
 

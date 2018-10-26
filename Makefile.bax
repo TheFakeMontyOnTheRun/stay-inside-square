@@ -1,0 +1,19 @@
+CXXFLAGS =  -m68000 -std=c++14 -s -fpermissive -noixemul
+
+LFLAGS =  -fstrength-reduce -msmall-code -s -Os -fomit-frame-pointer -noixemul -fpermissive
+
+CXX = m68k-amigaos-g++
+CC = m68k-amigaos-g++
+
+OBJS = demo.o rendering_amiga.o
+
+TARGET = demo
+
+$(TARGET):	$(OBJS)
+	$(CC) -o $(TARGET) $(OBJS)  $(CXXFLAGS) $(LDFLAGS)
+
+all:	$(TARGET)
+
+clean:
+	rm -f $(OBJS) $(TARGET)
+	rm *~
