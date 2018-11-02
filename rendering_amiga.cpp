@@ -18,6 +18,9 @@ struct NewWindow my_new_window= {
   200,            /* Height      pencerenin yuksekligi */
   0,             /* DetailPen   colour reg. 0 ile text cizilir */
   1,             /* BlockPen    colour reg. 1 ile block cizilir */
+  ACTIVEWINDOW|
+  VANILLAKEY|
+  CLOSEWINDOW|
   RAWKEY,        /* IDCMPFlags  */
   SMART_REFRESH| /* Flags       */
   WINDOWDRAG|    /*             */
@@ -99,7 +102,7 @@ int getKey() {
     seconds = my_message->Seconds;
     micros = my_message->Micros;  
     ReplyMsg(my_message);
-    if (messageClass == RAWKEY) {
+    if (messageClass == VANILLAKEY) {
       return code;
     }
       
@@ -140,6 +143,7 @@ unsigned char getPaletteEntry( int origin ) {
 }
 
 void copyImageBufferToVideoMemory() {
+  Delay(1);
 }
 
 void shutdown() {
