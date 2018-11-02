@@ -54,10 +54,8 @@ struct Border my_border=   {
 };
 
 void put( int x, int y, int value ) {
-  my_points[0] = x;
-  my_points[1] = y;
-  my_points[2] = x + 1;
-  my_points[3] = y;
+  WritePixel(my_window->RPort, x, y);
+}
   
   DrawBorder(my_window->RPort, &my_border, 10, 12);  
 }
