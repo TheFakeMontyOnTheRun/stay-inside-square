@@ -53,6 +53,8 @@ int getKey();
 
 void gameOver();
 
+void clear();
+
 void put( int x, int y, int value );
 
 void initMode13h();
@@ -63,6 +65,8 @@ void copyImageBufferToVideoMemory();
 
 void putBuffer( int x, int y, int index );
 
+void drawSquare( int x0, int y0, int x1, int y1, int index );
+
 void render() {  
   
   int y0 = -ticksUntilClosure + currentSquare.second;
@@ -71,46 +75,10 @@ void render() {
   int x1 = currentSquare.first + ticksUntilClosure;
 
   int isInsideTarget = isInside();
-  
-  for ( int y = y0; y < y1; ++y ) {
-    if ( y < 0 || y >= 100 ) {
-      continue;
-    }
-    
-    for ( int x = x0; x < x1; ++x ) {      
-      if ( x < 0 || x >= 160 ) {
-	continue;
-      }
-      
-      if ( x == x0 || x == ( x1 - 1 ) || y == y0 || y == (y1 - 1) ) {
-	putBuffer( x, y, isInsideTarget ? 1 : 2 );
-      }
-    }
-  }
-  
-
-  y0 = -5 + py;
-  y1 = 6 + py;
-  x0 = -5 + px;
-  x1 = 6 + px;
-  
-  for ( int y = y0; y < y1; ++y ) {
-    if ( y < 0 || y >= 100 ) {
-      continue;
-    }
-    
-    for ( int x = x0; x < x1; ++x ) {      
-      if ( x < 0 || x >= 160 ) {
-	continue;
-      }
-      
-      if ( x == x0 || x == ( x1 - 1 ) || y == y0 || y == (y1 - 1) ) {
-	putBuffer( x, y, isInsideTarget ? 1 : 3 );
-      }
-    }
-  }
-  
-  putBuffer( px, py, isInsideTarget ? 1 : 3 );
+  clear();
+  drawSquare( x0, y0, x1, y1, isInsideTarget ? 1 : 2 );
+  drawSquare( px - 5, py - 5, px + 6, py + 6, isInsideTarget ? 1 : 2 );
+  drawSquare( px, py, px + 1, py + 1, isInsideTarget ? 1 : 2 );
     
   ticksUntilClosure -= level;
  

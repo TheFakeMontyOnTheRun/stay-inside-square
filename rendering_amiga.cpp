@@ -43,6 +43,10 @@ SHORT my_points[]= {
   1, 1
 };
 
+SHORT quadPoints[]= {
+  0,0, 50,0, 50,30, 0,30, 0,0,  
+};
+
 struct Border my_border=   {
   0, 0,        /* LeftEdge, TopEdge. */
   3,           /* FrontPen, colour register 3. */
@@ -53,11 +57,41 @@ struct Border my_border=   {
   NULL,        /* NextBorder */
 };
 
+
+struct Border quad =   {
+  0, 0,        /* LeftEdge, TopEdge. */
+  3,           /* FrontPen, colour register 3. */
+  0,           /* BackPen, for the moment unused. */
+  JAM1,        /* DrawMode, draw the lines with colour 3. */
+  5,           /* mypoint 6 noktanın koordinatlari cizilecek */
+  quadPoints,   /* koordinatlara ait dizinin pointer'i */
+  NULL,        /* NextBorder */
+};
+
 void put( int x, int y, int value ) {
   WritePixel(my_window->RPort, x, y);
 }
+
+void clear() {
+  RectFill(my_window->RPort, 0, 0, 320, 200);
+}
+
+drawSquare(int x0, int y0, int x1, int y1, int index) {
   
-  DrawBorder(my_window->RPort, &my_border, 10, 12);  
+  quadPoints[0] = 2 * x0;
+  quadPoints[1] = 2 * y0;  
+  quadPoints[2] = 2 * x1;
+  quadPoints[3] = 2 * y0;  
+  quadPoints[4] = 2 * x1;
+  quadPoints[5] = 2 * y1;
+  quadPoints[6] = 2 * x0;
+  quadPoints[7] = 2 * y1;  
+  quadPoints[8] = 2 * x0;
+  quadPoints[9] = 2 * y0;
+
+  quad.FrontPen = index;
+  
+  DrawBorder(my_window->RPort, &quad, 0, 0);  
 }
 
 

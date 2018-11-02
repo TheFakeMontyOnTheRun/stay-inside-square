@@ -27,6 +27,28 @@ void printString(const char* pStr) {
   }
 }
 
+void clear() {
+  memset(imageBuffer, 0, 160 * 100 );
+}
+
+void drawSquare(int x0, int y0, int x1, int y1, int index ) {
+  for ( int y = y0; y < y1; ++y ) {
+    if ( y < 0 || y >= 100 ) {
+      continue;
+    }
+    
+    for ( int x = x0; x < x1; ++x ) {      
+      if ( x < 0 || x >= 160 ) {
+	continue;
+      }
+      
+      if ( x == x0 || x == ( x1 - 1 ) || y == y0 || y == (y1 - 1) ) {
+	putBuffer( x, y, index );
+      }
+    }
+  }
+}
+
 int getKey() {
   
   unsigned char toReturn = 255;
